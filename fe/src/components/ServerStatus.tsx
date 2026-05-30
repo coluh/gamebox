@@ -36,8 +36,8 @@ export default function ServerStatus({
 
   useEffect(() => {
     checkStatus();
-    const interval = setInterval(checkStatus, 30000); // 每30秒检查一次
-    return () => clearInterval(interval);
+    // const interval = setInterval(checkStatus, 30000); // 每30秒检查一次
+    // return () => clearInterval(interval);
   }, [checkStatus]);
 
   const domain = getDomain(url);
