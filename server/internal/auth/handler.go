@@ -58,7 +58,7 @@ func (h *Handler) Me(ctx *gin.Context) {
 	if err != nil {
 		switch err {
 		case ErrUserNotFound:
-			ctx.JSON(http.StatusUnauthorized, ErrorResponse{Error: "user_not_found", Message: "用户不存在或已被清理"})
+			ctx.JSON(http.StatusNotFound, ErrorResponse{Error: "user_not_found", Message: "用户不存在或已被清理"})
 		default:
 			ctx.JSON(http.StatusInternalServerError, ErrorResponse{Error: "internal_error", Message: "服务器内部错误"})
 			log.Println("500:", err)

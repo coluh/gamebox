@@ -20,6 +20,8 @@ export class ApiError extends Error {
   }
 }
 
+const NO_REFRESH_PATHS = ["/login", "/guest", "/refresh"];
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getAccessToken();
 
@@ -32,7 +34,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     },
   });
 
-  if (res.status === 401) {
+  if (res.status === 401 && !NO_REFRESH_PATHS.some((p) => path.startsWith(p))) {
     const refreshToken = getRefreshToken();
     if (refreshToken) {
       const refreshRes = await fetch(`${BASE_URL}/refresh`, {
@@ -55,7 +57,15 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   }
 
   if (!res.ok) {
-    const body = (await res.json()) as ErrorResponse;
+    // const body = (await res.json()) as ErrorResponse;
+    // throw new ApiError(body.error, body.message, res.status);
+    let body: ErrorResponse;
+    try {
+      body = (await res.json()) as ErrorResponse;
+    } catch {
+      console.error("Failed to parse error response", res);
+      throw new Error(`请求失败，状态码 ${res.status}`);
+    }
     throw new ApiError(body.error, body.message, res.status);
   }
 

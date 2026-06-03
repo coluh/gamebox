@@ -1,3 +1,4 @@
-web game
+web game, go + typescript
 
-go + typescript
+todo:
+- notice panel

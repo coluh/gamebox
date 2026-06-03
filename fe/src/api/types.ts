@@ -9,6 +9,10 @@ export type LoginResponse = {
   user: UserResponse;
 };
 
+export type MeResponse = {
+  user: UserResponse;
+};
+
 export type UserResponse = {
   id: string;
   nickname: string;

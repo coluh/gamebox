@@ -27,7 +27,7 @@ export function Home({ onShowLogin = () => {} }: Props) {
       </div>
 
       <Modal open={showProfile} onClose={() => setShowProfile(false)}>
-        <UserProfile />
+        <UserProfile onLogout={() => setShowProfile(false)} />
       </Modal>
     </div>
   );
