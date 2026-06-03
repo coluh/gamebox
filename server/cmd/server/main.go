@@ -3,7 +3,7 @@ package main
 import (
 	"gamebox/server/internal/auth"
 	"gamebox/server/internal/config"
-	"gamebox/server/internal/db"
+	"gamebox/server/internal/database"
 	"log"
 
 	"github.com/gin-contrib/cors"
@@ -14,10 +14,11 @@ func main() {
 
 	cfg := config.Load()
 
-	db, err := db.Connect(cfg.Database.DSN)
+	db, err := database.Connect(cfg.Database.DSN)
 	if err != nil {
 		log.Fatal(err)
 	}
+	database.InitRedis(cfg.Redis.Addr)
 
 	authRepo := auth.NewRepository(db)
 	authHandler := auth.NewHandler(auth.NewService(authRepo, cfg.JWTSecret))
@@ -34,13 +35,16 @@ func main() {
 	})
 
 	api := r.Group("/api")
-	api.POST("/guest", authHandler.Guest)
-	api.POST("/login", authHandler.Login)
-	authGroup := api.Group("/auth")
-	authGroup.Use(auth.Middleware([]byte(cfg.JWTSecret)))
 	{
-		authGroup.GET("/me", authHandler.Me)
-		authGroup.POST("/register", authHandler.Register)
+		api.POST("/guest", authHandler.Guest)
+		api.POST("/login", authHandler.Login)
+		api.POST("/refresh", authHandler.Refresh)
+	}
+	apiAuth := r.Group("/api")
+	apiAuth.Use(auth.Middleware([]byte(cfg.JWTSecret)))
+	{
+		apiAuth.GET("/me", authHandler.Me)
+		apiAuth.POST("/bind", authHandler.Bind)
 	}
 
 	r.Run(":" + cfg.Port)

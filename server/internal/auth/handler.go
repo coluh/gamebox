@@ -1,6 +1,9 @@
 package auth
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"gamebox/server/internal/database"
 	"log"
 	"net/http"
 	"time"
@@ -16,7 +19,6 @@ func NewHandler(svc *Service) *Handler {
 	return &Handler{svc: svc}
 }
 
-// 创建或登录游客账号，返回7天token及用户信息
 func (h *Handler) Guest(ctx *gin.Context) {
 	var req GuestRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -24,7 +26,7 @@ func (h *Handler) Guest(ctx *gin.Context) {
 		return
 	}
 
-	user, token, err := h.svc.CreateGuest(req.Nickname)
+	user, accessToken, refreshToken, err := h.svc.CreateOrReuseGuest(req.Nickname)
 	if err != nil {
 		switch err {
 		case ErrNicknameRegistered:
@@ -36,13 +38,15 @@ func (h *Handler) Guest(ctx *gin.Context) {
 		return
 	}
 
+	hash := sha256.Sum256([]byte(refreshToken))
+	database.Rdb.Set(ctx.Request.Context(), "refresh:"+user.ID, hex.EncodeToString(hash[:]), 7*24*time.Hour)
+
 	ctx.JSON(http.StatusOK, AuthResponse{
-		Token: token,
-		User:  toUserResponse(user),
+		AccessToken: accessToken,
+		User:        toUserResponse(user),
 	})
 }
 
-// 获取自身用户信息
 func (h *Handler) Me(ctx *gin.Context) {
 	userID := ctx.GetString("user_id")
 	if userID == "" {
@@ -67,21 +71,20 @@ func (h *Handler) Me(ctx *gin.Context) {
 	})
 }
 
-// 绑定邮箱，升级为正式用户，返回新token
-func (h *Handler) Register(ctx *gin.Context) {
+func (h *Handler) Bind(ctx *gin.Context) {
 	userID := ctx.GetString("user_id")
 	if userID == "" {
 		ctx.JSON(http.StatusUnauthorized, ErrorResponse{Error: "unauthorized", Message: "请先创建游客身份"})
 		return
 	}
 
-	var req RegisterRequest
+	var req BindRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, ErrorResponse{Error: "validation_error", Message: "邮箱或密码格式不正确"})
 		return
 	}
 
-	user, token, err := h.svc.Register(userID, req.Email, req.Password)
+	user, err := h.svc.Bind(userID, req.Email, req.Password)
 	if err != nil {
 		switch err {
 		case ErrNotGuest:
@@ -95,13 +98,11 @@ func (h *Handler) Register(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, AuthResponse{
-		Token: token, // 新token哦
-		User:  toUserResponse(user),
+	ctx.JSON(http.StatusOK, MeResponse{
+		User: toUserResponse(user),
 	})
 }
 
-// 正式用户登录
 func (h *Handler) Login(ctx *gin.Context) {
 	var req LoginRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -114,7 +115,7 @@ func (h *Handler) Login(ctx *gin.Context) {
 		return
 	}
 
-	user, token, err := h.svc.Login(req)
+	user, accessToken, refreshToken, err := h.svc.Login(req)
 	if err != nil {
 		switch err {
 		case ErrUserNotFound:
@@ -128,9 +129,37 @@ func (h *Handler) Login(ctx *gin.Context) {
 		return
 	}
 
+	hash := sha256.Sum256([]byte(refreshToken))
+	database.Rdb.Set(ctx.Request.Context(), "refresh:"+user.ID, hex.EncodeToString(hash[:]), 7*24*time.Hour)
+
 	ctx.JSON(http.StatusOK, AuthResponse{
-		Token: token,
-		User:  toUserResponse(user),
+		AccessToken: accessToken,
+		User:        toUserResponse(user),
+	})
+}
+
+func (h *Handler) Refresh(ctx *gin.Context) {
+	var req RefreshRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, ErrorResponse{Error: "validation_error", Message: "请求格式错误"})
+		return
+	}
+
+	userID, err := database.Rdb.Get(ctx.Request.Context(), "refresh:"+req.RefreshToken).Result()
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, ErrorResponse{Error: "unauthorized", Message: "refresh token无效或已过期"})
+		return
+	}
+
+	accessToken, err := GenerateAccessToken(userID, h.svc.jwtSecret)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, ErrorResponse{Error: "internal_error", Message: "服务器内部错误"})
+		log.Println("500:", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, RefreshResponse{
+		AccessToken: accessToken,
 	})
 }
 
@@ -144,7 +173,6 @@ func toUserResponse(u *User) UserResponse {
 		ID:        u.ID,
 		Nickname:  u.Nickname,
 		Email:     u.Email,
-		IsGuest:   u.Email == nil,
 		CreatedAt: u.CreatedAt.Format(time.RFC3339),
 		ExpiresAt: expiresAt,
 	}

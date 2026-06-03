@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 type Status = "checking" | "online" | "offline";
 type Props = {
   url?: string;
+  className?: string;
 };
 
 function getDomain(url: string): string {
@@ -15,6 +16,7 @@ function getDomain(url: string): string {
 
 export default function ServerStatus({
   url = import.meta.env.VITE_SERVER_URL || "http://localhost:3600",
+  className = "",
 }: Props) {
   const [status, setStatus] = useState<Status>("checking");
 
@@ -57,10 +59,10 @@ export default function ServerStatus({
   return (
     <div
       onClick={status !== "checking" ? () => void checkStatus() : undefined}
-      className={`flex h-fit w-fit cursor-default flex-col items-center rounded-lg p-2 ${color}`}
+      className={`flex h-fit w-fit cursor-pointer flex-col items-center rounded-lg p-2 text-sm ${color} ${className}`}
     >
-      <i className="text-xs font-medium">{domain}</i>
-      <span className="text-sm font-bold">{text}</span>
+      <i className="font-medium">{domain}</i>
+      <span className="font-bold">{text}</span>
     </div>
   );
 }

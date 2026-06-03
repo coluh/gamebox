@@ -5,8 +5,8 @@ type GuestRequest struct {
 	Nickname string `json:"nickname" binding:"required,min=1,max=30"`
 }
 
-// POST /api/auth/register
-type RegisterRequest struct {
+// POST /api/bind
+type BindRequest struct {
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required,min=6"`
 }
@@ -18,20 +18,34 @@ type LoginRequest struct {
 	Password string `json:"password" binding:"required,min=6"`
 }
 
+// POST /api/refresh
+type RefreshRequest struct {
+	RefreshToken string `json:"refreshToken"`
+}
+
 type UserResponse struct {
 	ID        string  `json:"id"`
 	Nickname  string  `json:"nickname"`
 	Email     *string `json:"email"`
-	IsGuest   bool    `json:"is_guest"`
-	CreatedAt string  `json:"created_at"`
-	ExpiresAt *string `json:"expires_at"`
+	CreatedAt string  `json:"createdAt"`
+	ExpiresAt *string `json:"expiresAt"`
 }
 
+// * POST /api/guest
+// * POST /api/login
 type AuthResponse struct {
-	Token string       `json:"token"`
-	User  UserResponse `json:"user"`
+	AccessToken  string       `json:"accessToken"`
+	RefreshToken string       `json:"refreshToken"`
+	User         UserResponse `json:"user"`
 }
 
+// * POST /api/refresh
+type RefreshResponse struct {
+	AccessToken string `json:"accessToken"`
+}
+
+// * POST /api/bind
+// * GET /api/me
 type MeResponse struct {
 	User UserResponse `json:"user"`
 }
