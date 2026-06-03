@@ -39,19 +39,19 @@ export default function LoginForm({ onSuccess }: Props) {
   };
 
   return (
-    <div className="flex flex-col gap-8 rounded p-6 shadow-lg">
+    <div className="flex flex-col gap-8 rounded bg-zinc-800 p-6 shadow-lg">
       <h2 className="text-2xl">欢迎</h2>
       <input
         type="text"
         value={nickname}
         onChange={(e) => setNickname(e.target.value)}
         placeholder="输入昵称"
-        className="border-b-2 border-slate-600 bg-slate-700 p-2 outline-none focus:border-slate-400"
+        className="border-b-2 border-zinc-600 bg-zinc-700 p-2 outline-none focus:border-zinc-400"
       />
       <button
         onClick={handleGuestLogin}
         disabled={loading || nickname.trim() === ""}
-        className="mx-auto bg-slate-700 px-4 py-3 text-xl hover:bg-slate-600 disabled:text-slate-500 disabled:hover:bg-slate-700"
+        className="mx-auto bg-zinc-700 px-4 py-3 text-xl hover:bg-zinc-600 disabled:text-zinc-500 disabled:hover:bg-zinc-700"
       >
         {loading ? "登录中..." : "游客登录"}
       </button>

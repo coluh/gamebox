@@ -51,10 +51,10 @@ export default function ServerStatus({
         : "- 离线 -";
   const color =
     status === "checking"
-      ? "bg-blue-600"
+      ? "bg-zinc-600"
       : status === "online"
-        ? "bg-green-600"
-        : "bg-gray-600";
+        ? "bg-emerald-600"
+        : "bg-zinc-600";
 
   return (
     <div

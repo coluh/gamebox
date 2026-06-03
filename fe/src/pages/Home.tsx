@@ -18,10 +18,10 @@ export function Home({ onShowLogin = () => {} }: Props) {
         }
       />
       <div className="flex size-full cursor-default flex-col items-center justify-start gap-4 p-8 text-2xl">
-        <div className="w-md bg-slate-800 px-8 py-4 text-center transition-transform duration-200 hover:scale-105 hover:bg-slate-700">
+        <div className="w-full max-w-lg border-l border-emerald-400 bg-zinc-800 px-8 py-4 text-center transition-transform duration-200 hover:scale-105 hover:bg-zinc-700">
           开始游戏
         </div>
-        <div className="w-md bg-slate-800 px-8 py-4 text-center transition-transform duration-200 hover:scale-105 hover:bg-slate-700">
+        <div className="w-full max-w-lg border-l border-emerald-400 bg-zinc-800 px-8 py-4 text-center transition-transform duration-200 hover:scale-105 hover:bg-zinc-700">
           设置
         </div>
       </div>
