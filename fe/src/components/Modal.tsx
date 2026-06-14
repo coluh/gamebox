@@ -14,7 +14,7 @@ export default function Modal({ open, onClose, children }: ModalProps) {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative w-3xl border-t-4 border-l border-emerald-400 bg-zinc-800 shadow-md shadow-emerald-400/50"
+        className="relative w-3xl border-t-4 border-l border-emerald-400 bg-zinc-900 shadow-md shadow-emerald-400/50"
       >
         <button
           className="absolute top-2 right-2 ml-auto rounded-lg px-3 py-2 hover:bg-zinc-700"

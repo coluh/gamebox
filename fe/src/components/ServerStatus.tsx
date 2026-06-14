@@ -15,7 +15,7 @@ function getDomain(url: string): string {
 }
 
 export default function ServerStatus({
-  url = import.meta.env.VITE_SERVER_URL || "http://localhost:3600",
+  url = import.meta.env.VITE_API_BASE_URL || "http://localhost:3600/api",
   className = "",
 }: Props) {
   const [status, setStatus] = useState<Status>("checking");

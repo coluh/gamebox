@@ -1,13 +1,7 @@
-import {
-  getAccessToken,
-  setAccessToken,
-  getRefreshToken,
-  clearTokens,
-} from "@/utils/auth";
+import { getAccessToken, setAccessToken, getRefreshToken, clearTokens } from "@/utils/auth";
 import type { ErrorResponse } from "./types";
 
-const BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:3600/api";
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3600/api";
 
 export class ApiError extends Error {
   code: string;

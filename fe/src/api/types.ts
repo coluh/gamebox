@@ -27,6 +27,7 @@ export type UserInfo = {
   email?: string;
   avatarUrl?: string;
   joinedAt: string;
+  expiresAt?: string;
 };
 
 export function toUserInfo(user: UserResponse): UserInfo {
@@ -35,5 +36,6 @@ export function toUserInfo(user: UserResponse): UserInfo {
     nickname: user.nickname,
     email: user.email,
     joinedAt: new Date(user.createdAt).toLocaleString(),
+    expiresAt: new Date(user.expiresAt).toLocaleString(),
   };
 }
