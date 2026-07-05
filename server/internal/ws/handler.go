@@ -2,6 +2,7 @@ package ws
 
 import (
 	"gamebox/server/internal/auth"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -16,7 +17,7 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-func WsHandler(hub *Hub, jwtSecret []byte) gin.HandlerFunc {
+func WsHandler(hub *Hub, jwtSecret []byte, repo *auth.Repository) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		token := ctx.Query("token")
 		if token == "" {
@@ -24,6 +25,7 @@ func WsHandler(hub *Hub, jwtSecret []byte) gin.HandlerFunc {
 				Error:   "unauthorized",
 				Message: "缺少token",
 			})
+			return
 		}
 
 		userID, err := auth.ParseToken(token, jwtSecret)
@@ -32,6 +34,13 @@ func WsHandler(hub *Hub, jwtSecret []byte) gin.HandlerFunc {
 				Error:   "unauthorized",
 				Message: "token无效",
 			})
+			return
+		}
+		nickname, _ := repo.GetNicknameByID(userID)
+
+		if _, ok := hub.clients[userID]; ok {
+			log.Println("already logged in")
+			return
 		}
 
 		conn, err := upgrader.Upgrade(ctx.Writer, ctx.Request, nil)
@@ -39,11 +48,7 @@ func WsHandler(hub *Hub, jwtSecret []byte) gin.HandlerFunc {
 			return
 		}
 
-		client := &Client{
-			conn:   conn,
-			userID: userID,
-			send:   make(chan []byte),
-		}
+		client := NewClient(conn, userID, nickname)
 		hub.register <- client
 		go client.readLoop(hub)
 		go client.writeLoop()

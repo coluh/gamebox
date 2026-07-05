@@ -1,18 +1,12 @@
-import { api, ApiError } from "@/api/http";
-import type { MeResponse } from "@/api/types";
-import { gameSocket } from "@/api/ws";
+import { bindEmail } from "@/api";
+import { toUserInfo } from "@/api/types";
 import { useUserStore } from "@/store/userStore";
-import { clearTokens } from "@/utils/auth";
 import { useState } from "react";
 
-type Props = {
-  onLogout?: () => void;
-};
-
-export default function UserProfile({ onLogout = () => {} }: Props) {
+export default function UserProfile() {
   const user = useUserStore((s) => s.userInfo);
-  const clearUserInfo = useUserStore((s) => s.clearUserInfo);
   const updateUserInfo = useUserStore((s) => s.updateUserInfo);
+  const [expand, setExpand] = useState(false);
   const [showBind, setShowBind] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,15 +17,11 @@ export default function UserProfile({ onLogout = () => {} }: Props) {
     setLoading(true);
     setError("");
     try {
-      const data = await api.post<MeResponse>("/bind", { email, password });
-      updateUserInfo(data.user);
+      const data = await bindEmail({ email, password });
+      updateUserInfo(toUserInfo(data));
       setShowBind(false);
     } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.message);
-        return;
-      }
-      setError("绑定失败");
+      setError(`绑定失败: ${err}`);
     } finally {
       setLoading(false);
     }
@@ -46,78 +36,68 @@ export default function UserProfile({ onLogout = () => {} }: Props) {
   }
 
   return (
-    <div className="flex flex-col bg-zinc-900">
-      <h2 className="p-4 text-2xl font-bold">用户信息</h2>
-      <div className="grid grid-cols-[6rem_1fr] gap-y-2 p-4 text-lg">
-        <p>ID</p>
-        <p>{user.id}</p>
-        <p>昵称</p>
-        <p>{user.nickname}</p>
-        <p>邮箱</p>
-        {user.email ? (
+    <div className="flex max-w-xs flex-col items-start gap-2 md:w-xs">
+      <div>
+        <h2 className="text-xl font-bold">{user.nickname}</h2>
+        <p className="wrap-anywhere text-zinc-500">{user.id}</p>
+      </div>
+      {!user.email && (
+        <p className="text-sm text-red-300">
+          账号将于{user.expiresAt}过期。请
+          <u onClick={() => setShowBind((b) => !b)} className="hover:cursor-pointer hover:text-blue-500">
+            绑定邮箱
+          </u>
+        </p>
+      )}
+      {expand && (
+        <div className="transition-transform">
           <p>{user.email}</p>
-        ) : showBind ? (
-          <div className="flex flex-col gap-2">
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="请输入邮箱"
-              className="w-md border-b border-zinc-700 bg-zinc-900 p-2 outline-none focus:border-zinc-400"
-            />
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="设置密码"
-              className="w-md border-b border-zinc-700 bg-zinc-900 p-2 outline-none focus:border-zinc-400"
-            />
-            <div className="flex flex-row gap-4">
-              <button
-                onClick={handleBindEmail}
-                disabled={loading || email.trim() === "" || password.trim() === ""}
-                className="text-md w-fit bg-emerald-600 px-4 py-2 hover:bg-emerald-700"
-              >
-                {loading ? "绑定中..." : "提交绑定"}
-              </button>
-              <button
-                onClick={() => setShowBind(false)}
-                disabled={loading}
-                className="text-md w-fit px-4 py-2 text-emerald-400 hover:bg-emerald-400/10"
-              >
-                取消
-              </button>
-            </div>
-            {error && <p className="text-red-500">{error}</p>}
-          </div>
-        ) : (
-          <div className="flex flex-row justify-between">
-            <p>无</p>
+          <p className="text-sm">加入于{user.joinedAt}</p>
+        </div>
+      )}
+      <button
+        onClick={() => setExpand((old) => !old)}
+        className="rounded bg-zinc-600/50 px-2 py-1 text-sm hover:cursor-pointer hover:bg-zinc-600/75"
+      >
+        {!expand ? "展开" : "收起"}
+      </button>
+
+      {showBind && (
+        <div className="flex w-full flex-col gap-2">
+          <h3 className="text-lg font-bold">绑定邮箱</h3>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="请输入邮箱"
+            className="w-full border-b border-white/20 bg-black/30 p-2 outline-none focus:border-white/50"
+          />
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="设置密码"
+            className="w-full border-b border-white/20 bg-black/30 p-2 outline-none focus:border-white/50"
+          />
+          <div className="flex flex-row gap-4">
             <button
-              onClick={() => setShowBind(true)}
-              className="text-md bg-emerald-600 px-4 py-2 hover:bg-emerald-700"
+              onClick={handleBindEmail}
+              disabled={loading || email.trim() === "" || password.trim() === ""}
+              className="w-fit bg-emerald-600 px-4 py-2 text-base hover:bg-emerald-700 disabled:bg-zinc-700 disabled:text-zinc-400"
             >
-              绑定邮箱
+              {loading ? "绑定中..." : "提交绑定"}
+            </button>
+            <button
+              onClick={() => setShowBind(false)}
+              disabled={loading}
+              className="w-fit px-4 py-2 text-base text-emerald-400 hover:bg-emerald-400/10"
+            >
+              取消
             </button>
           </div>
-        )}
-        <p>加入时间</p>
-        <p>{user.joinedAt}</p>
-        {user.expiresAt && <p className="col-span-2">账号将于{user.expiresAt}过期。请绑定邮箱。</p>}
-      </div>
-      <div className="p-4 pt-0">
-        <button
-          onClick={() => {
-            clearUserInfo();
-            clearTokens();
-            gameSocket.disconnect();
-            onLogout();
-          }}
-          className="w-fit border-l border-emerald-400 px-4 py-2 text-red-500 hover:bg-zinc-700"
-        >
-          退出登录
-        </button>
-      </div>
+          {error && <p className="text-red-400">{error}</p>}
+        </div>
+      )}
     </div>
   );
 }

@@ -44,12 +44,6 @@ type RefreshResponse struct {
 	AccessToken string `json:"accessToken"`
 }
 
-// * POST /api/bind
-// * GET /api/me
-type MeResponse struct {
-	User UserResponse `json:"user"`
-}
-
 type ErrorResponse struct {
 	Error   string `json:"error"`
 	Message string `json:"message"`

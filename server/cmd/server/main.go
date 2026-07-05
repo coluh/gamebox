@@ -38,22 +38,24 @@ func main() {
 		AllowHeaders: []string{"*"},
 	}))
 
-	r.GET("/ws", ws.WsHandler(hub, []byte(cfg.JWTSecret)))
+	r.GET("/ws", ws.WsHandler(hub, []byte(cfg.JWTSecret), authRepo))
 
 	api := r.Group("/api")
 	{
 		api.GET("health", func(ctx *gin.Context) {
 			ctx.Status(200)
 		})
-		api.POST("/guest", authHandler.Guest)
-		api.POST("/login", authHandler.Login)
-		api.POST("/refresh", authHandler.Refresh)
+		api.POST("/guest", authHandler.Guest)     // create or login guest account
+		api.POST("/login", authHandler.Login)     // login formal account with password
+		api.POST("/refresh", authHandler.Refresh) // get access token
 	}
 	apiAuth := r.Group("/api")
 	apiAuth.Use(auth.Middleware([]byte(cfg.JWTSecret)))
 	{
-		apiAuth.GET("/me", authHandler.Me)
-		apiAuth.POST("/bind", authHandler.Bind)
+		apiAuth.GET("/me", authHandler.Me)      // get self info
+		apiAuth.POST("/bind", authHandler.Bind) // bind email and password, become formal account
+		apiAuth.POST("/join", hub.JoinRoom)     // start game
+		apiAuth.POST("/leave", hub.LeaveRoom)   // exit world
 	}
 
 	r.Run(":" + cfg.Port)

@@ -66,9 +66,7 @@ func (h *Handler) Me(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, MeResponse{
-		User: toUserResponse(user),
-	})
+	ctx.JSON(http.StatusOK, toUserResponse(user))
 }
 
 func (h *Handler) Bind(ctx *gin.Context) {
@@ -98,9 +96,7 @@ func (h *Handler) Bind(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, MeResponse{
-		User: toUserResponse(user),
-	})
+	ctx.JSON(http.StatusOK, toUserResponse(user))
 }
 
 func (h *Handler) Login(ctx *gin.Context) {
@@ -133,8 +129,9 @@ func (h *Handler) Login(ctx *gin.Context) {
 	database.Rdb.Set(ctx.Request.Context(), "refresh:"+user.ID, hex.EncodeToString(hash[:]), 7*24*time.Hour)
 
 	ctx.JSON(http.StatusOK, AuthResponse{
-		AccessToken: accessToken,
-		User:        toUserResponse(user),
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		User:         toUserResponse(user),
 	})
 }
 

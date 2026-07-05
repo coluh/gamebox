@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 
-type Status = "checking" | "online" | "offline";
+export type Status = "checking" | "online" | "offline";
 type Props = {
   url?: string;
   className?: string;
+  onChecked?: (status: Status) => void;
 };
 
 function getDomain(url: string): string {
@@ -17,6 +18,7 @@ function getDomain(url: string): string {
 export default function ServerStatus({
   url = import.meta.env.VITE_API_BASE_URL || "http://localhost:3600/api",
   className = "",
+  onChecked = () => {},
 }: Props) {
   const [status, setStatus] = useState<Status>("checking");
 
@@ -42,24 +44,22 @@ export default function ServerStatus({
     // return () => clearInterval(interval);
   }, [checkStatus]);
 
+  useEffect(() => {
+    onChecked(status);
+  }, [status]);
+
   const domain = getDomain(url);
-  const text =
-    status === "checking"
-      ? "检测中..."
-      : status === "online"
-        ? "服务在线"
-        : "- 离线 -";
-  const color =
-    status === "checking"
-      ? "bg-zinc-600"
-      : status === "online"
-        ? "bg-emerald-600"
-        : "bg-zinc-600";
+  const text = status === "checking" ? "检测中..." : status === "online" ? "服务在线" : "- 离线 -";
+  const color = status === "checking" ? "bg-zinc-600" : status === "online" ? "bg-emerald-600" : "bg-zinc-600";
 
   return (
     <div
-      onClick={status !== "checking" ? () => void checkStatus() : undefined}
-      className={`flex h-fit w-fit cursor-pointer flex-col items-center rounded-lg p-2 text-sm ${color} ${className}`}
+      onClick={() => {
+        if (status !== "checking") {
+          checkStatus();
+        }
+      }}
+      className={`flex h-fit w-fit cursor-pointer flex-row items-center gap-2 rounded-lg p-2 text-sm ${color} ${className}`}
     >
       <i className="font-medium">{domain}</i>
       <span className="font-bold">{text}</span>

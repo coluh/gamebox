@@ -1,59 +1,94 @@
+import { joinGame } from "@/api";
 import { gameSocket } from "@/api/ws";
-import { useEffect, useState } from "react";
+import { getAccessToken } from "@/utils/auth";
+import { useEffect, useRef, useState } from "react";
 
 type Props = {
   onExit: () => void;
 };
 
+type Player = {
+  id: string;
+  pos: { x: number; y: number };
+  vel: { x: number; y: number };
+};
+
 export function Game({ onExit }: Props) {
-  const [messages, setMessages] = useState<string[]>([]);
-  const [text, setText] = useState("");
+  const initialized = useRef(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [players, setPlayers] = useState<Player[]>([]);
+
+  const syncHandler = (payload: { list: Player[] }) => {
+    setPlayers(payload.list);
+  };
+
+  const init = () => {
+    const token = getAccessToken();
+    if (!token) return; // TODO: nav module, notice module
+    gameSocket.connect(token);
+    gameSocket.on("sync", syncHandler);
+    // TODO: loading
+    joinGame().then((res) => console.log(`room ${res.roomId}, count ${res.count}`));
+  };
+
+  const deinit = () => {
+    gameSocket.off("sync", syncHandler);
+    gameSocket.disconnect();
+  };
 
   useEffect(() => {
-    const handler = (payload: { msg: string }) => {
-      setMessages((prev) => [...prev, payload.msg]);
+    if (initialized.current) return;
+    initialized.current = true;
+    init();
+  }, []);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
     };
-    gameSocket.on("chat", handler);
+    resize();
+    window.addEventListener("resize", resize);
     return () => {
-      gameSocket.off("chat", handler);
+      window.removeEventListener("resize", resize);
     };
   }, []);
 
-  const send = (text) => {
-    if (text.trim() === "") return;
-    gameSocket.send("chat", { msg: text });
-    setText("");
-  };
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.strokeStyle = "green";
+    ctx.lineWidth = 4;
+    players.forEach((p) => {
+      ctx.strokeRect(p.pos.x - 10, p.pos.y - 20, 20, 40);
+    });
+  }, [players]);
 
   return (
-    <div className="size-full pt-16">
-      <div className="mx-auto flex w-3xl flex-col gap-8 rounded-lg bg-black/20 p-16 ring-2 ring-emerald-600">
-        <button
-          onClick={onExit}
-          className="size-fit rounded-lg bg-black/20 px-4 py-2 text-lg ring-2 ring-emerald-600 transition duration-150 hover:-translate-y-0.5 hover:scale-110 hover:bg-white/10"
-        >
-          Exit
-        </button>
-        <div className="flex flex-col bg-black/50 px-4 py-2">
-          {messages.map((m, i) => (
-            <p key={i}>{m}</p>
-          ))}
-        </div>
-        <input
-          type="text"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && send(text)}
-          className="border-b border-emerald-600 bg-black/50 px-4 py-2 outline-none focus:border-emerald-400"
-        />
-        <button
-          disabled={text.trim() === ""}
-          onClick={() => send(text)}
-          className="mx-auto size-fit rounded-lg bg-black/20 px-4 py-2 text-lg shadow ring-2 shadow-emerald-400 ring-emerald-600 duration-100 hover:shadow-lg active:shadow-inner disabled:text-zinc-500"
-        >
-          Send
-        </button>
-      </div>
+    <div className="size-full bg-emerald-950">
+      <canvas
+        ref={canvasRef}
+        onClick={(ev) => {
+          // const rect = canvasRef.current!.getBoundingClientRect();
+          gameSocket.send("teleport", { pos: { x: ev.clientX, y: ev.clientY } });
+        }}
+      />
+      <button
+        onClick={() => {
+          deinit();
+          onExit();
+        }}
+        className="fixed top-8 left-8 size-fit rounded-lg bg-black/20 px-4 py-2 text-lg ring-2 ring-emerald-600 hover:bg-white/10"
+      >
+        Exit
+      </button>
     </div>
   );
 }

@@ -70,6 +70,13 @@ func (r *Repository) FindByEmail(email string) (*User, error) {
 	return u, err
 }
 
+func (r *Repository) GetNicknameByID(id string) (nickname string, err error) {
+	err = r.db.QueryRow(`
+		SELECT nickname FROM users WHERE id = $1
+		`, id).Scan(&nickname)
+	return
+}
+
 func (r *Repository) Update(u *User) error {
 	_, err := r.db.Exec(`
 		UPDATE users SET nickname=$1, email=$2, password_hash=$3, expires_at=$4

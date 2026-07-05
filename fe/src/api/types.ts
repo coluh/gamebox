@@ -3,22 +3,18 @@ export type ErrorResponse = {
   message: string;
 };
 
-export type LoginResponse = {
-  accessToken: string;
-  refreshToken: string;
-  user: UserResponse;
-};
-
-export type MeResponse = {
-  user: UserResponse;
-};
-
 export type UserResponse = {
   id: string;
   nickname: string;
   email?: string;
   createdAt: string;
   expiresAt?: string;
+};
+
+export type AuthResponse = {
+  accessToken: string;
+  refreshToken: string;
+  user: UserResponse;
 };
 
 export type UserInfo = {
@@ -36,6 +32,11 @@ export function toUserInfo(user: UserResponse): UserInfo {
     nickname: user.nickname,
     email: user.email,
     joinedAt: new Date(user.createdAt).toLocaleString(),
-    expiresAt: new Date(user.expiresAt).toLocaleString(),
+    expiresAt: user.expiresAt ? new Date(user.expiresAt).toLocaleString() : undefined,
   };
 }
+
+export type JoinResponse = {
+  roomId: string;
+  count: number;
+};

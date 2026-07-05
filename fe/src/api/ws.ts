@@ -12,7 +12,7 @@ class GameSocket {
 
   connect(token: string) {
     this.token = token;
-    this.ws = new WebSocket(`${WS_URL}?token=${token}`);
+    this.ws = new WebSocket(`${WS_URL}?token=${token}`); // TODO: auto refresh token
 
     this.ws.onopen = () => {
       this.reconnectAttempts = 0;
@@ -24,9 +24,11 @@ class GameSocket {
         this.handlers.get(type)?.forEach((fn) => fn(payload));
       } catch {}
     };
-    this.ws.onclose = () => {
-      this.stopHeartbeat();
-      this.reconnect();
+    this.ws.onclose = (ev) => {
+      if (!ev.wasClean) {
+        this.stopHeartbeat();
+        this.reconnect();
+      }
     };
   }
 
@@ -39,7 +41,7 @@ class GameSocket {
   // register handler for type
   on(type: string, handler: MessageHandler) {
     if (!this.handlers.has(type)) this.handlers.set(type, new Set());
-    this.handlers.get(type).add(handler);
+    this.handlers.get(type)!.add(handler);
   }
 
   off(type: string, handler: MessageHandler) {
